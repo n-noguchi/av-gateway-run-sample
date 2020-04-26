@@ -1,0 +1,49 @@
+version: '3'
+services:
+  clamd:
+    image: docker.pkg.github.com/n-noguchi/av-gateway/clamd:1.0.0
+    logging:
+        options:
+          max-size: "10m"
+          max-file: "3"
+    ports:
+      - "3310:3310"
+  c-icap:
+    image: docker.pkg.github.com/n-noguchi/av-gateway/c-icap:1.0.0
+    logging:
+        options:
+          max-size: "10m"
+          max-file: "3"
+    environment:
+        - CLAMD_HOST=clamd
+    ports:
+      - "1344:1344"
+    links:
+      - clamd
+  squid:
+    image: docker.pkg.github.com/n-noguchi/av-gateway/squid:1.0.0
+    logging:
+        options:
+          max-size: "10m"
+          max-file: "3"
+    volumes:
+      - ./squid:/squidconf:ro
+    environment:
+      - CICAP_HOST=c-icap
+      - CERT_PRIVATE_KEY_PATH=/squidconf/privateca.pem
+      - DOMAIN_BLACKLIST_PATH=/squidconf/blacklist.txt
+    ports:
+      - "3128:3128"
+    links:
+      - c-icap
+  web:
+    image: nginx:latest
+    logging:
+        options:
+          max-size: "10m"
+          max-file: "3"
+    volumes:
+      - ./www:/usr/share/nginx/html:ro
+    ports:
+      - "80:80"
+    
